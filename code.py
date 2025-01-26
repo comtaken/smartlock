@@ -7,15 +7,28 @@ import wifi
 import adafruit_ntp
 import rtc
 import busio
+import pwmio
+from adafruit_motor import servo
+# 書き込み禁止時、以下を実行し初期化
+# import storage
+# storage.erase_filesystem()
 
 # 接続情報
-#######################
-#######################
+SSID =
+PASSWORD =
 
 # 本体LEDの設定
 led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 led.value = False
+
+# サーボモータの設定 (GPIOピンは適宜変更)
+pwm = pwmio.PWMOut(board.GP16, duty_cycle=0, frequency=50)
+my_servo = servo.Servo(pwm)
+lockFlg = ""
+
+# サーボモータを元の位置（0度）に戻す
+my_servo.angle = 0
 
 # Wi-Fi接続を設定
 try:
@@ -68,9 +81,69 @@ def index(request):
     <head><title>Simple Web Page</title></head>
     <body>
     <h1 style="color:red">SMARTLOCK PJ</h1>
+    <p>//TODO:html別出し</p>
+    <p>Your IP address is: {}</p>
+    <form action="/close">
+        <button type="submit">Move Servo 120 Degrees</button>
+    </form>
+    <form action="/open">
+        <button type="submit">Move Servo 0 Degrees</button>
+    </form>
     </body>
     </html>
     """.format(wifi.radio.ipv4_address)
+    return httpserver.Response(request, html, content_type="text/html")
+
+@server.route("/close")
+def move_servo(request):
+    global lockFlg
+    if(lockFlg == ""):
+        my_servo.angle = 120
+        lockFlg = "1"
+    print(lockFlg)
+    html = """
+    <html>
+    <meta charset="UTF-8">
+    <head><title>Simple Web Page</title></head>
+    <body>
+    <h1 style="color:red">SMARTLOCK PJ</h1>
+    <p>//TODO:html別出し</p>
+    <p>Your IP address is: {}</p>
+    <form action="/close">
+        <button type="submit">Move Servo 120 Degrees</button>
+    </form>
+    <form action="/open">
+        <button type="submit">Move Servo 0 Degrees</button>
+    </form>
+    </body>
+    </html>
+    """
+    return httpserver.Response(request, html, content_type="text/html")
+
+@server.route("/open")
+def move_servo(request):
+    global lockFlg
+    if(lockFlg == "1"):
+        my_servo.angle = 0
+        lockFlg = ""
+    print(lockFlg)
+    html = """
+    <html>
+    <meta charset="UTF-8">
+    <head><title>Simple Web Page</title></head>
+    <body>
+    <h1 style="color:red">SMARTLOCK PJ</h1>
+    <p>//TODO:html別出し</p>
+    <p>Your IP address is: {}</p>
+    <form action="/close">
+        <button type="submit">Move Servo 120 Degrees</button>
+    </form>
+    <form action="/open">
+        <button type="submit">Move Servo 0 Degrees</button>
+    </form>
+    </body>
+    </html>
+    """
     return httpserver.Response(request, html, content_type="text/html")
 
 server.start(port=8080)
@@ -81,4 +154,3 @@ while True:
     except Exception as e:
         print(f"Server error: {e}")
     time.sleep(1)
-
